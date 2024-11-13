@@ -1,37 +1,25 @@
-/*
- * Q0000
- * AUTOR:   BrincandoComIdeias
- * LINK:    https://www.youtube.com/brincandocomideias ; https://cursodearduino.net/
- * SKETCH:  Leitorbiométrico
- * DATA:    21/11/2018
- */
 
 // INCLUSÃO DAS BIBLIOTECAS
 #include <Adafruit_Fingerprint.h>
 #include <SoftwareSerial.h>
-#include <Pushbutton.h>
+#include <PushButton.h>
 
-// // DEFINIÇÃO DO PINO DO BOTÃO
-// #define pinBot 11
-
-// DEFINIÇÃO DO PINO DA TRAVA
-// #define pinTrava 4
-
-// SoftwareSerial mySerial(3, 2);
-
-Adafruit_Fingerprint finger = Adafruit_Fingerprint(&Serial);
-
-// Pushbutton botao(pinBot);
+SoftwareSerial mySerial(3, 2);
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 // DECLARAÇÃO DAS VARIÁVEIS E FUNCOES
 bool gravar = true;
+bool buttonState = false;
+bool lastButtonState = false;
 
-// uint8_t modoGravacaoID(uint8_t IDgravar);
+// PINOS 
+const int buttonPin = 4;
+const int ledPin = 13;
 
 void setup() {
-  
-  // pinMode(pinTrava, OUTPUT);
-  // digitalWrite(pinTrava, HIGH);
+
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(ledPin, OUTPUT);
   
   Serial.begin(57600);
   finger.begin(57600);
@@ -40,7 +28,7 @@ void setup() {
 
   if(finger.verifyPassword()){
     
-    Serial.println("Sensor biometrico !");
+    Serial.println("Sensor biometricoo !");
 
   } else {
 
@@ -59,37 +47,11 @@ void loop() {
   String escolha;
   uint8_t numID;
 
+  buttonState = !digitalRead(buttonPin);
+
   // botao.waitForButton();
 
-  // if (botao.isPressed()){
-  //   gravar = true;
-  // }
-
-  // if(gravar){
-
-  //   Serial.println("Modo gravação\n");
-  //   modoGravacaoID(0);
-  //   gravar = false;
-  // }
-
-  Serial.println("Deseja gravar uma nova impressão digital (s/n): ");
-
-  // Este while faz que ele aguarde até que o usuário insira algum valor
-  // Usamos isso quando precisamos aguardar até o usuário insira alguma valor
-  while (Serial.available() == 0) {
-    Serial.println("Esta preso aqui");
-    delay(2000);
-  };
-
-  escolha = Serial.readString();
-  Serial.print("Você digitou: "); // Imprime uma mensagem de retorno
-  Serial.println(escolha); // Exibe o número lido
-
-  // Limpa o buffer do Serial
-  while (Serial.available() > 0);
-  Serial.read();
-
-  if (escolha == 's' || escolha == 'S') {
+  if (buttonState && !lastButtonState) {
 
     Serial.print("Digite o ID para gravar a impressão digital: ");
 
@@ -106,13 +68,13 @@ void loop() {
       Serial.println("Falha na gravação da impressão digital!");
     }
 
-  } else if (escolha == 'n' || escolha == 'N') {
-    Serial.println(" Encerrando programa. ");
+    delay(50);
 
-    while(true); // Para o loop principal, encerrando o programa
   }
 
-  // getFingerprintIDez();
+  lastButtonState = buttonState;
+  
+  getFingerprintIDez();
   
 }
 
@@ -120,7 +82,7 @@ uint8_t modoGravacaoID(uint8_t IDgravar) {
 
   int p = -1;
 
-  Serial.print("ISssso Esperando uma leitura válida para gravar #");
+  Serial.print("Esperando uma leitura válida para gravar #");
   delay(5000);
   Serial.println(IDgravar);
   
@@ -322,34 +284,33 @@ uint8_t modoGravacaoID(uint8_t IDgravar) {
   return FINGERPRINT_OK;
 }
 
-// int getFingerprintIDez() {
-//   uint8_t p = finger.getImage();
-//   if (p != FINGERPRINT_OK)  return -1;
+int getFingerprintIDez() {
 
-//   p = finger.image2Tz();
-//   if (p != FINGERPRINT_OK)  return -1;
+  uint8_t p = finger.getImage();
 
-//   p = finger.fingerFastSearch();
-//   if (p != FINGERPRINT_OK)  return -1;
+  if (p != FINGERPRINT_OK)  return -1;
+
+  p = finger.image2Tz();
+  if (p != FINGERPRINT_OK)  return -1;
+
+  p = finger.fingerFastSearch();
+  if (p != FINGERPRINT_OK)  return -1;
   
-//   //Encontrou uma digital!
-//   if (finger.fingerID == 0) {
-//      Serial.print("Modo Administrador!");
-     
-//      numID++;
-//      modoGravacaoID(numID);
-//      return 0; 
-  
-//   } else {
+  //  digitalWrite(pinTrava, LOW);
+  Serial.print("ID encontrado #"); 
+  Serial.print(finger.fingerID); 
+  Serial.print(" com confiança de "); 
+  Serial.println(finger.confidence);
+  delay(500);
 
-//     //  digitalWrite(pinTrava, LOW);
-//      Serial.print("ID encontrado #"); Serial.print(finger.fingerID); 
-//      Serial.print(" com confiança de "); Serial.println(finger.confidence);
-//      delay(500);
-//     //  digitalWrite(pinTrava, HIGH);
-//      return finger.fingerID;
-//   } 
-// }
+  digitalWrite(ledPin, HIGH);
 
+  delay(200);
+
+  digitalWrite(ledPin, LOW);
+
+  return finger.fingerID;
+
+}
 
 
