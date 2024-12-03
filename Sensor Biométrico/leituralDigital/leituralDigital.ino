@@ -17,9 +17,10 @@
 // DEFINIÇÃO DO PINO DA TRAVA
 // #define pinTrava 4
 
-// SoftwareSerial mySerial(3, 2);
+SoftwareSerial mySerial(3, 2);
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-Adafruit_Fingerprint finger = Adafruit_Fingerprint(&Serial);
+#define LED_PIN 13
 
 // Pushbutton botao(pinBot);
 
@@ -56,7 +57,8 @@ void setup() {
 
 void loop() {
 
-  String escolha;
+  char escolha;
+  char escolhaLED;
   uint8_t numID;
 
   // botao.waitForButton();
@@ -72,22 +74,28 @@ void loop() {
   //   gravar = false;
   // }
 
-  Serial.println("Deseja gravar uma nova impressão digital (s/n): ");
+  // Serial.println("Deseja gravar uma nova impressão digital (s/n): ");
+  Serial.println("Deseja acender LED (s/n): ");
 
   // Este while faz que ele aguarde até que o usuário insira algum valor
   // Usamos isso quando precisamos aguardar até o usuário insira alguma valor
   while (Serial.available() == 0) {
-    Serial.println("Esta preso aqui");
-    delay(2000);
+
+    delay(200);
   };
 
-  escolha = Serial.readString();
-  Serial.print("Você digitou: "); // Imprime uma mensagem de retorno
-  Serial.println(escolha); // Exibe o número lido
+  // escolha = Serial.read();
+  escolhaLED = Serial.read();
 
   // Limpa o buffer do Serial
-  while (Serial.available() > 0);
-  Serial.read();
+  while (Serial.available() > 0) {
+    Serial.read();
+  }
+
+  if (escolhaLED == 's') {
+    verificaBiometria();
+  }
+  
 
   if (escolha == 's' || escolha == 'S') {
 
@@ -106,7 +114,9 @@ void loop() {
       Serial.println("Falha na gravação da impressão digital!");
     }
 
+  
   } else if (escolha == 'n' || escolha == 'N') {
+    
     Serial.println(" Encerrando programa. ");
 
     while(true); // Para o loop principal, encerrando o programa
@@ -320,6 +330,49 @@ uint8_t modoGravacaoID(uint8_t IDgravar) {
   }  
 
   return FINGERPRINT_OK;
+}
+
+// Função para verificar e acender o LED se a digital for reconhecida
+void verificaBiometria() {
+
+  int resultado;
+
+  Serial.println("Verificação de biometrica inicializada...");
+  Serial.println("Insira o dedo por favor");
+
+  delay(2000);
+
+  resultado = finger.getImage(); // Captura a imagem da digital
+
+  if (resultado == FINGERPRINT_NOFINGER) {
+
+    digitalWrite(LED_PIN, LOW); // Apaga o LED se não houver dedo no sensor
+    return;
+
+  }
+
+  if (resultado == FINGERPRINT_OK) {
+
+    resultado = finger.image2Tz();                          // Converte a imagem para modelo de digital
+
+    if (resultado == FINGERPRINT_OK) {
+
+      resultado = finger.fingerFastSearch();                // Pesquisa rápida para encontrar uma correspondência
+
+      if (resultado == FINGERPRINT_OK) {
+        
+        Serial.println("Impressão digital reconhecida!");
+        digitalWrite(LED_PIN, HIGH);                        // Acende o LED se a digital for reconhecida
+        delay(2000);                                        // Mantém o LED aceso por 2 segundos
+
+      } else {
+        Serial.println("Impressão digital não reconhecida.");
+        digitalWrite(LED_PIN, LOW);   // Apaga o LED se não for reconhecida
+      }
+    }
+  }
+
+  delay(500); // Pausa para evitar leituras excessivas
 }
 
 // int getFingerprintIDez() {
